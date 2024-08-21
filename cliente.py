@@ -12,12 +12,12 @@ def segmentar_datos(datos, tamano_segmento):
     return [datos[i:i + tamano_segmento] for i in range(0, len(datos), tamano_segmento)]
 
 
-def encapsular_segmento(segmento, numero_secuencia, es_ultimo):
+def encapsular_segmento(segmento, numero_secuencia):
     checksum = zlib.crc32(segmento.encode())
     return {
         'numero_secuencia': numero_secuencia,
         'checksum': checksum,
-        'es_ultimo': es_ultimo,
+        'es_ultimo': False,
         'datos': segmento
     }
 
@@ -40,10 +40,12 @@ def simular_errores(segmentos):
 
 def enviar_segmentos(servidor_host, servidor_puerto, segmentos):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as cliente:
-        for segmento in segmentos:
-            print(f"Enviando segmento: {segmento}")
-            cliente.sendto(str(segmento).encode(), (servidor_host, servidor_puerto))
-            print(f"Segmento {segmento['numero_secuencia']} enviado al servidor")
+        for i in range(len(segmentos)):
+            print(f"Enviando segmento: {segmentos[i]}")
+            if i == len(segmentos) - 1:
+                segmentos[i]['es_ultimo'] = True
+            cliente.sendto(str(segmentos[i]).encode(), (servidor_host, servidor_puerto))
+            print(f"Segmento {segmentos[i]['numero_secuencia']} enviado al servidor")
 
 
 # Configuración
@@ -55,6 +57,6 @@ SERVIDOR_PUERTO = 12345
 # Proceso del cliente
 datos = leer_archivo(RUTA_ARCHIVO)
 segmentos = segmentar_datos(datos, TAMANO_SEGMENTO)
-segmentos_encapsulados = [encapsular_segmento(segmentos[i], i, i == len(segmentos) - 1) for i in range(len(segmentos))]
-segmentos_con_errores = simular_errores(segmentos_encapsulados)
-enviar_segmentos(SERVIDOR_HOST, SERVIDOR_PUERTO, segmentos_con_errores)
+segmentos_encapsulados = [encapsular_segmento(segmentos[i], i) for i in range(len(segmentos))]
+segmentos_encapsulados = simular_errores(segmentos_encapsulados)
+enviar_segmentos(SERVIDOR_HOST, SERVIDOR_PUERTO, segmentos_encapsulados)
